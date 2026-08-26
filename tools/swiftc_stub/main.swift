@@ -66,7 +66,32 @@ extension URL {
     mutating func touch() throws {
         let fileManager = FileManager.default
         if !fileManager.fileExists(atPath: path) {
-            fileManager.createFile(atPath: path, contents: nil)
+            // MARK: ViboGram - bugfix for MobileNativeFoundation/rules_xcodeproj#3183.
+            // `createFile`'s Bool result was previously discarded, and the parent
+            // directory was never created first. On a large target graph the
+            // Objects-normal/arm64 directory for this target isn't always created
+            // yet by the time Xcode invokes this stub as the target's compiler,
+            // so createFile silently failed, this function returned normally
+            // anyway, and Xcode believed CompileSwiftSources had produced the
+            // .swiftmodule -- only for the later native "Copy" build step (which
+            // copies it into the framework's Modules folder) to fail with ENOENT,
+            // since the file was never actually created. Creating the parent
+            // directory first and surfacing a real failure instead of silently
+            // continuing turns that into a loud, attributable error instead of a
+            // confusing downstream ENOENT three steps later.
+            try fileManager.createDirectory(
+                at: deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            guard fileManager.createFile(atPath: path, contents: nil) else {
+                throw NSError(
+                    domain: "swiftc_stub.touch",
+                    code: 1,
+                    userInfo: [
+                        NSLocalizedDescriptionKey: "createFile failed for \(path)",
+                    ]
+                )
+            }
         } else {
             var resourceValues = URLResourceValues()
             resourceValues.contentModificationDate = Date()
