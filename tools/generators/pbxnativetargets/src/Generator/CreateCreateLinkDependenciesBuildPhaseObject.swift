@@ -67,22 +67,19 @@ fi
 # them. CompileSwiftSources' own touch() still runs afterward and is a
 # no-op against an already-existing file (mtime bump only), so this can't
 # make an already-working target worse.
-# MARK: ViboGram - temporary diagnostic (unconditional, always runs):
-# dump the exact values this phase actually sees, to a per-target file, so
-# a failing run tells us definitively which of these is empty/unset
-# instead of guessing again.
-{
-  echo "SWIFT_VERSION=${SWIFT_VERSION:-<unset>}"
-  echo "PRODUCT_MODULE_NAME=${PRODUCT_MODULE_NAME:-<unset>}"
-  echo "OBJECT_FILE_DIR_normal=${OBJECT_FILE_DIR_normal:-<unset>}"
-  echo "CURRENT_ARCH=${CURRENT_ARCH:-<unset>}"
-} > "/tmp/create_link_deps_env_${TARGET_NAME:-unknown}.txt" 2>/dev/null || true
-
-if [[ -n "${SWIFT_VERSION:-}" && -n "${PRODUCT_MODULE_NAME:-}" && -n "${OBJECT_FILE_DIR_normal:-}" && -n "${CURRENT_ARCH:-}" ]]; then
-  mkdir -p "${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}"
-  for ext in swiftmodule swiftdoc swiftsourceinfo swiftinterface; do
-    f="${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}/${PRODUCT_MODULE_NAME}.${ext}"
-    [[ -e "$f" ]] || : > "$f"
+# MARK: ViboGram - CURRENT_ARCH is "undefined_arch" in this script phase's
+# environment -- confirmed live (this phase doesn't run per-architecture the
+# way the actual compile action does, so Xcode never resolves it here).
+# $ARCHS (the target's configured architecture list) *is* reliably set
+# regardless, so touch the placeholder under every configured arch instead
+# of relying on CURRENT_ARCH.
+if [[ -n "${SWIFT_VERSION:-}" && -n "${PRODUCT_MODULE_NAME:-}" && -n "${OBJECT_FILE_DIR_normal:-}" && -n "${ARCHS:-}" ]]; then
+  for arch in ${ARCHS}; do
+    mkdir -p "${OBJECT_FILE_DIR_normal}/${arch}"
+    for ext in swiftmodule swiftdoc swiftsourceinfo swiftinterface; do
+      f="${OBJECT_FILE_DIR_normal}/${arch}/${PRODUCT_MODULE_NAME}.${ext}"
+      [[ -e "$f" ]] || : > "$f"
+    done
   done
 fi
 
