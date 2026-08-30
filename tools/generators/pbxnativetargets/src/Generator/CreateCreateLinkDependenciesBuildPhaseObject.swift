@@ -52,6 +52,29 @@ else
   touch "$SCRIPT_OUTPUT_FILE_0"
 fi
 
+# MARK: ViboGram - bugfix for MobileNativeFoundation/rules_xcodeproj#3183.
+# swiftc_stub's touch() creates these placeholder module artifacts inside
+# CompileSwiftSources, but that action's own declared-output tracking is
+# apparently not a hard enough dependency edge for Xcode's build system:
+# under BwB, the compiler is a near-instant stub rather than a real (slow)
+# compile, and the native "Copy ... to Modules/" step that consumes these
+# files can get scheduled before CompileSwiftSources finishes writing them
+# -- confirmed live (mtime of the placeholder postdates the failed Copy
+# attempt in the build log). This phase already runs unconditionally and
+# strictly before Sources, with real declared outputs Xcode does honor, so
+# pre-creating empty placeholders here closes that window: whichever phase
+# actually runs first, the files already exist by the time Copy looks for
+# them. CompileSwiftSources' own touch() still runs afterward and is a
+# no-op against an already-existing file (mtime bump only), so this can't
+# make an already-working target worse.
+if [[ -n "${SWIFT_VERSION:-}" ]]; then
+  mkdir -p "${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}"
+  for ext in swiftmodule swiftdoc swiftsourceinfo swiftinterface; do
+    f="${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}/${SWIFT_MODULE_NAME}.${ext}"
+    [[ -e "$f" ]] || : > "$f"
+  done
+fi
+
 """#,
         ]
 
