@@ -73,9 +73,17 @@ fi
 # $ARCHS (the target's configured architecture list) *is* reliably set
 # regardless, so touch the placeholder under every configured arch instead
 # of relying on CURRENT_ARCH.
+# MARK: ViboGram - temporary diagnostic: an unambiguous marker file (a
+# name CompileSwiftSources' own touch() never writes) so a subsequent run
+# can prove definitively whether this block actually executed, independent
+# of the swiftmodule file itself (which the stub also writes, so its mere
+# existence can't distinguish "this ran first" from "the stub wrote it").
+echo "ran at $(date -u +%Y-%m-%dT%H:%M:%S.%NZ), ARCHS='${ARCHS:-<unset>}'" >> "/tmp/create_link_deps_marker_${TARGET_NAME:-unknown}.txt" 2>/dev/null || true
+
 if [[ -n "${SWIFT_VERSION:-}" && -n "${PRODUCT_MODULE_NAME:-}" && -n "${OBJECT_FILE_DIR_normal:-}" && -n "${ARCHS:-}" ]]; then
   for arch in ${ARCHS}; do
     mkdir -p "${OBJECT_FILE_DIR_normal}/${arch}"
+    : > "${OBJECT_FILE_DIR_normal}/${arch}/.viboBAM_pretouch_marker"
     for ext in swiftmodule swiftdoc swiftsourceinfo swiftinterface; do
       f="${OBJECT_FILE_DIR_normal}/${arch}/${PRODUCT_MODULE_NAME}.${ext}"
       [[ -e "$f" ]] || : > "$f"
