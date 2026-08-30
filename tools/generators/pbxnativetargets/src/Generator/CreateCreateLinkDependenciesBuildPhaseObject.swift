@@ -67,7 +67,7 @@ fi
 # them. CompileSwiftSources' own touch() still runs afterward and is a
 # no-op against an already-existing file (mtime bump only), so this can't
 # make an already-working target worse.
-if [[ -n "${SWIFT_VERSION:-}" ]]; then
+if [[ -n "${SWIFT_VERSION:-}" && -n "${SWIFT_MODULE_NAME:-}" && -n "${OBJECT_FILE_DIR_normal:-}" && -n "${CURRENT_ARCH:-}" ]]; then
   mkdir -p "${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}"
   for ext in swiftmodule swiftdoc swiftsourceinfo swiftinterface; do
     f="${OBJECT_FILE_DIR_normal}/${CURRENT_ARCH}/${SWIFT_MODULE_NAME}.${ext}"
