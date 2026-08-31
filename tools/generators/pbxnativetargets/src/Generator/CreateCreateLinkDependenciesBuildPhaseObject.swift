@@ -73,6 +73,7 @@ fi
 if [[ -n "${SWIFT_VERSION:-}" && -n "${PRODUCT_MODULE_NAME:-}" && -n "${BUILT_PRODUCTS_DIR:-}" && -n "${FULL_PRODUCT_NAME:-}" ]]; then
   MODULE_DEST_DIR="${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Modules/${PRODUCT_MODULE_NAME}.swiftmodule"
   mkdir -p "${MODULE_DEST_DIR}/Project"
+  : > "${MODULE_DEST_DIR}/Project/.viboBAM_placeholder"
 fi
 
 """#,
@@ -80,6 +81,7 @@ fi
 
         var outputPaths = [#"""
 				"$(DERIVED_FILE_DIR)/link.params",
+				"$(BUILT_PRODUCTS_DIR)/$(FULL_PRODUCT_NAME)/Modules/$(PRODUCT_MODULE_NAME).swiftmodule/Project/.viboBAM_placeholder",
 """#]
         if hasCompileStub {
             outputPaths.append(#"""
