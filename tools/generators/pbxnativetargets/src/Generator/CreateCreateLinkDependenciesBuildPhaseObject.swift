@@ -52,36 +52,11 @@ else
   touch "$SCRIPT_OUTPUT_FILE_0"
 fi
 
-# MARK: ViboGram - real fix for MobileNativeFoundation/rules_xcodeproj#3183.
-# Root cause (confirmed live, not guessed): the native "Copy .swiftmodule
-# et al into the framework bundle" step doesn't fail because its SOURCE is
-# missing -- pre-creating the source under Objects-normal/$(arch), even
-# well before xcodebuild starts, does not help at all (verified with a
-# file whose creation time predates the whole build and is never deleted
-# or recreated). It fails because multiple of Xcode's own parallel copy
-# workers (one per artifact: swiftmodule/swiftdoc/swiftsourceinfo) race
-# each other to mkdir the *shared destination* bundle-style directory
-# (.../Modules/$(PRODUCT_MODULE_NAME).swiftmodule/, plus its nested
-# .../Project subdirectory for swiftsourceinfo) -- whichever worker tries
-# to open its file inside that directory before another worker's mkdir for
-# the same path has completed gets ENOENT, misleadingly reported against
-# the (perfectly fine) source path since Xcode's error message prints both
-# paths together. Pre-creating the destination directory structure here
-# removes the need for any worker to mkdir it at all, which is what
-# actually fixes this (confirmed live: identical build succeeds cleanly
-# once this directory pre-exists, fails identically every time otherwise).
-if [[ -n "${SWIFT_VERSION:-}" && -n "${PRODUCT_MODULE_NAME:-}" && -n "${BUILT_PRODUCTS_DIR:-}" && -n "${FULL_PRODUCT_NAME:-}" ]]; then
-  MODULE_DEST_DIR="${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Modules/${PRODUCT_MODULE_NAME}.swiftmodule"
-  mkdir -p "${MODULE_DEST_DIR}/Project"
-  : > "${MODULE_DEST_DIR}/Project/.viboBAM_placeholder"
-fi
-
 """#,
         ]
 
         var outputPaths = [#"""
 				"$(DERIVED_FILE_DIR)/link.params",
-				"$(BUILT_PRODUCTS_DIR)/$(FULL_PRODUCT_NAME)/Modules/$(PRODUCT_MODULE_NAME).swiftmodule/Project/.viboBAM_placeholder",
 """#]
         if hasCompileStub {
             outputPaths.append(#"""
